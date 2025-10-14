@@ -43,6 +43,9 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Model cache
-models/
+# Model cache (ML models, not Python code)
+*.pt
+*.pth
+*.onnx
+*.h5
 .cache/

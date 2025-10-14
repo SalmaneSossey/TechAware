@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 import json
 from pathlib import Path
+from app.services.paper_service import PaperService
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -50,7 +51,8 @@ I'm your AI-powered research companion, helping you stay ahead of the latest bre
 
 🔬 What I can do:
 • Send you daily digests of the most impactful research papers
-• Provide AI-generated summaries so you can quickly understand key findings
+• Show you top relevant papers on-demand with `/papers`
+• Provide AI-generated summaries and probable applications
 • Help you discover papers that matter to your work
 
 Ready to stay informed effortlessly?
@@ -118,12 +120,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🤖 TechAware Bot Commands:
 
 /start - Subscribe to daily research digests
+/papers [n] - Show top relevant papers (default: 3, max: 5)
 /unsubscribe - Stop receiving daily digests
 /help - Show this help message
 /status - Check your subscription status
 
 📚 About TechAware:
 TechAware helps you stay aware of emerging advances in AI, software engineering, and data science. Get AI-powered summaries of the latest research papers delivered daily.
+
+💡 Try `/papers` to see today's most relevant research papers with summaries and probable applications!
 
 Visit our website: {website}
 """.format(website=os.getenv("FRONTEND_URL", "http://localhost:3000"))
@@ -150,6 +155,105 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Use /start to subscribe to daily research digests!"
         )
 
+async def papers_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /papers command - show top relevant papers"""
+    try:
+        # Get the number of papers to show (default 3, max 5)
+        num_papers = 3
+        if context.args:
+            try:
+                num_papers = min(int(context.args[0]), 5)
+            except (ValueError, IndexError):
+                num_papers = 3
+        
+        # Get papers from service
+        paper_service = PaperService()
+        papers = await paper_service.get_daily_top(num_papers)
+        
+        if not papers:
+            await update.message.reply_text(
+                "🤖 No papers available at the moment. Please try again later!"
+            )
+            return
+        
+        # Send papers one by one for better readability
+        intro_message = f"🔬 <b>Top {len(papers)} Research Papers Today</b>\n\n"
+        intro_message += "Here are the most relevant papers with AI-generated summaries and potential applications:\n\n"
+        
+        await update.message.reply_text(intro_message, parse_mode="HTML")
+        
+        for i, paper in enumerate(papers, 1):
+            paper_message = format_paper_message(paper, i)
+            
+            # Create inline keyboard for each paper
+            keyboard = [
+                [InlineKeyboardButton("📖 Read Full Paper", url=paper.pdf_url)]
+            ]
+            
+            # Only add frontend button if URL is valid (not localhost)
+            frontend_url = os.getenv("FRONTEND_URL", "")
+            if frontend_url and not frontend_url.startswith("http://localhost"):
+                keyboard.append([InlineKeyboardButton("🌐 Explore More Papers", url=frontend_url)])
+            
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                paper_message,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+                disable_web_page_preview=True
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in papers_command: {e}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        await update.message.reply_text(
+            f"❌ Sorry, I encountered an error while fetching papers. Error: {str(e)[:100]}"
+        )
+
+def escape_markdown(text: str) -> str:
+    """Escape special characters for Telegram Markdown"""
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+def format_paper_message(paper, index: int) -> str:
+    """Format a paper into a readable Telegram message"""
+    # Use HTML formatting instead of Markdown for better compatibility
+    message = f"<b>{index}. {paper.title}</b>\n\n"
+    
+    # Authors
+    authors_str = ", ".join(paper.authors[:3])  # Show first 3 authors
+    if len(paper.authors) > 3:
+        authors_str += f" +{len(paper.authors) - 3} more"
+    message += f"👥 <b>Authors:</b> {authors_str}\n"
+    
+    # Category and score
+    message += f"📂 <b>Category:</b> {paper.category}\n"
+    message += f"⭐ <b>Relevance Score:</b> {paper.score:.1f}/100\n\n"
+    
+    # Summary
+    message += f"📝 <b>AI Summary:</b>\n{paper.summary_short}\n\n"
+    
+    # Impact suggestions (probable applications)
+    if paper.impact_suggestions:
+        message += f"🚀 <b>Probable Applications:</b>\n"
+        for suggestion in paper.impact_suggestions:
+            message += f"• {suggestion}\n"
+        message += "\n"
+    
+    # Tags
+    if paper.tags:
+        tags_str = " ".join([f"#{tag.replace(' ', '')}" for tag in paper.tags])
+        message += f"🏷️ {tags_str}\n\n"
+    
+    # Publication date
+    message += f"📅 Published: {paper.published_at}"
+    
+    return message
+
 def create_bot_application(token: str) -> Application:
     """Create and configure the bot application"""
     application = Application.builder().token(token).build()
@@ -159,6 +263,7 @@ def create_bot_application(token: str) -> Application:
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("unsubscribe", unsubscribe_command))
     application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CommandHandler("papers", papers_command))
     
     # Add callback query handler for buttons
     application.add_handler(CallbackQueryHandler(subscribe_callback, pattern="^subscribe$"))
@@ -174,26 +279,44 @@ async def send_daily_digest(application: Application, papers: list):
         return
     
     # Format the digest message
-    digest_message = "🔬 *TechAware Daily Digest*\n\n"
-    digest_message += f"Here are today's top {len(papers)} research papers:\n\n"
-    
-    for i, paper in enumerate(papers[:5], 1):  # Send top 5 papers
-        digest_message += f"*{i}. {paper['title']}*\n"
-        digest_message += f"📝 {paper['summary']}\n"
-        digest_message += f"🔗 [Read Paper]({paper['url']})\n\n"
-    
-    digest_message += f"\n🌐 [Explore more papers](http://localhost:3000/explore)"
+    digest_message = "🔬 <b>TechAware Daily Digest</b>\n\n"
+    digest_message += f"Here are today's top {len(papers)} research papers with summaries and applications:\n\n"
     
     # Send to all subscribers
     success_count = 0
     for user_id in subscriptions.keys():
         try:
+            # Send intro message
             await application.bot.send_message(
                 chat_id=int(user_id),
                 text=digest_message,
-                parse_mode="Markdown",
-                disable_web_page_preview=True
+                parse_mode="HTML"
             )
+            
+            # Send each paper as a separate message for better readability
+            for i, paper in enumerate(papers[:3], 1):  # Send top 3 papers in digest
+                paper_message = format_paper_message(paper, i)
+                
+                # Create inline keyboard for each paper
+                keyboard = [
+                    [InlineKeyboardButton("📖 Read Full Paper", url=paper.pdf_url)]
+                ]
+                
+                # Only add frontend button if URL is valid (not localhost)
+                frontend_url = os.getenv("FRONTEND_URL", "")
+                if frontend_url and not frontend_url.startswith("http://localhost"):
+                    keyboard.append([InlineKeyboardButton("🌐 Explore More Papers", url=frontend_url)])
+                
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                await application.bot.send_message(
+                    chat_id=int(user_id),
+                    text=paper_message,
+                    reply_markup=reply_markup,
+                    parse_mode="HTML",
+                    disable_web_page_preview=True
+                )
+            
             success_count += 1
         except Exception as e:
             logger.error(f"Failed to send digest to user {user_id}: {e}")
