@@ -31,21 +31,21 @@ Your AI-powered research companion—summarizing the latest breakthroughs in AI 
 ### Local Development
 
 **Frontend:**
-\`\`\`bash
+```bash
 npm install
 npm run dev
-\`\`\`
+```
 
 **Backend:**
-\`\`\`bash
+```bash
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-\`\`\`
+```
 
 ### Docker Compose
 
-\`\`\`bash
+```bash
 # Copy environment variables
 cp .env.example .env
 
@@ -60,7 +60,7 @@ docker-compose logs -f
 
 # Stop services
 docker-compose down
-\`\`\`
+\\\
 
 The application will be available at:
 - Frontend: http://localhost:3000
@@ -73,7 +73,7 @@ The application will be available at:
 
 Create a `.env` file based on `.env.example`:
 
-\`\`\`env
+```env
 # Frontend
 NEXT_PUBLIC_API_URL=http://localhost:8000
 FRONTEND_URL=http://localhost:3000
@@ -88,22 +88,22 @@ TELEGRAM_BOT_URL=https://t.me/your_bot_name?start=web
 # API Configuration
 API_HOST=0.0.0.0
 API_PORT=8000
-\`\`\`
+```
 
 ### Changing the Summarization Model
 
 Edit `backend/app/services/summarizer.py`:
 
-\`\`\`python
+```python
 class Summarizer:
     def __init__(self, model_name: str = "your-model-name"):
         # Your custom model
-\`\`\`
+```
 
 Or set via environment variable:
-\`\`\`env
+```env
 MODEL_NAME=facebook/bart-large-cnn
-\`\`\`
+```
 
 ## 📡 API Endpoints
 
@@ -130,7 +130,7 @@ MODEL_NAME=facebook/bart-large-cnn
 
 ### Example Response
 
-\`\`\`json
+```json
 {
   "papers": [
     {
@@ -156,7 +156,7 @@ MODEL_NAME=facebook/bart-large-cnn
   "limit": 10,
   "pages": 1
 }
-\`\`\`
+```
 
 ## 🤖 Telegram Bot Setup
 
@@ -171,21 +171,21 @@ MODEL_NAME=facebook/bart-large-cnn
 
 Add your bot token to `.env`:
 
-\`\`\`env
+```env
 TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_BOT_URL=https://t.me/your_bot_name?start=web
-\`\`\`
+```
 
 ### Step 3: Start the Backend
 
-\`\`\`bash
+```bash
 # With Docker
 docker-compose up -d backend
 
 # Or locally
 cd backend
 uvicorn app.main:app --reload
-\`\`\`
+```
 
 You should see: `✅ Telegram bot started successfully`
 
@@ -227,21 +227,21 @@ You should see: `✅ Telegram bot started successfully`
 
 Edit `app/globals.css` to customize the color scheme:
 
-\`\`\`css
+```css
 @theme inline {
   --background: oklch(1 0 0);  /* White background */
   --primary: oklch(0.70 0.20 210);  /* Electric blue */
   /* ... other colors */
 }
-\`\`\`
+```
 
 ### Adding New Categories
 
 Edit `backend/app/services/scraper.py`:
 
-\`\`\`python
+```python
 categories = ["cs.AI", "cs.LG", "cs.CV", "cs.NE"]  # Add more
-\`\`\`
+```
 
 ## 📝 Development Notes
 
@@ -257,9 +257,9 @@ categories = ["cs.AI", "cs.LG", "cs.CV", "cs.NE"]  # Add more
 
 ### Vercel (Frontend)
 
-\`\`\`bash
+```bash
 vercel deploy
-\`\`\`
+```
 
 ### Railway/Render (Backend)
 
@@ -272,13 +272,13 @@ vercel deploy
 
 For production deployments, use webhook mode instead of polling:
 
-\`\`\`python
+```python
 # In backend/app/main.py
 # Replace polling with webhook
 await bot_application.bot.set_webhook(
     url=f"{YOUR_BACKEND_URL}/telegram/webhook"
 )
-\`\`\`
+```
 
 ## 📄 License
 
