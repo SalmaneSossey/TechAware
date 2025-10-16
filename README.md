@@ -173,7 +173,7 @@ Add your bot token to `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
-TELEGRAM_BOT_URL=https://t.me/your_bot_name?start=web
+TELEGRAM_BOT_URL=https://t.me/techaware_bot?start=web
 ```
 
 ### Step 3: Start the Backend
@@ -255,11 +255,6 @@ categories = ["cs.AI", "cs.LG", "cs.CV", "cs.NE"]  # Add more
 
 ## 🚢 Deployment
 
-### Vercel (Frontend)
-
-```bash
-vercel deploy
-```
 
 ### Railway/Render (Backend)
 
