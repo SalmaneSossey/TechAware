@@ -202,6 +202,7 @@ You should see: `✅ Telegram bot started successfully`
 - `/unsubscribe` - Stop receiving daily digests
 - `/help` - Show help message
 - `/status` - Check your subscription status
+- `/papers [n]` - Get the top `n` most relevant papers (default: 3, max: 5)
 
 ### Troubleshooting
 
