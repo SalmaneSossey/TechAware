@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import papers, tags, health, telegram
+from app.routers import papers, tags, health, telegram, ingest
 from app.services.telegram_bot import create_bot_application
 import os
 from contextlib import asynccontextmanager
@@ -56,7 +56,8 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(papers.router, prefix="/papers", tags=["papers"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
-app.include_router(telegram.router, prefix="/telegram", tags=["telegram"])  # Added Telegram router
+app.include_router(telegram.router, prefix="/telegram", tags=["telegram"])
+app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 
 @app.get("/")
 async def root():

@@ -2,12 +2,36 @@ from typing import List, Optional
 from app.models.paper import Paper, PapersListResponse
 from app.services.summarizer import Summarizer
 import math
+import json
+import os
 
 class PaperService:
     def __init__(self):
         self.summarizer = Summarizer()
-        # Mock data store - replace with actual database
-        self.papers = self._get_mock_papers()
+        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+        self.papers_file = os.path.join(self.data_dir, "papers.json")
+        # Load papers from file or use mock data as fallback
+        self.papers = self._load_papers()
+    
+    def _load_papers(self) -> List[Paper]:
+        """Load papers from JSON file or return mock data"""
+        try:
+            if os.path.exists(self.papers_file):
+                with open(self.papers_file, 'r', encoding='utf-8') as f:
+                    papers_data = json.load(f)
+                    # Convert dict to Paper objects
+                    return [Paper(**paper) for paper in papers_data]
+        except Exception as e:
+            print(f"⚠️  Could not load papers from file: {e}")
+        
+        # Return mock data as fallback
+        print("ℹ️  Using mock data (no papers.json found)")
+        return self._get_mock_papers()
+    
+    def reload_papers(self):
+        """Reload papers from file"""
+        self.papers = self._load_papers()
+        print(f"✅ Reloaded {len(self.papers)} papers")
     
     def _get_mock_papers(self) -> List[Paper]:
         """Generate mock papers for demo"""

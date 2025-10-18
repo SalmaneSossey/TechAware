@@ -23,7 +23,7 @@ class Summarizer:
             from transformers import pipeline
             self._model = pipeline("summarization", model=self.model_name)
     
-    def summarize(
+    async def summarize(
         self,
         text: str,
         max_length: int = 220,
@@ -107,3 +107,73 @@ class Summarizer:
         ])
         
         return suggestions[:2]  # Return max 2 suggestions
+    
+    async def suggest_impact(self, title: str, abstract: str) -> List[str]:
+        """
+        Generate impact suggestions based on paper content (async version)
+        
+        Args:
+            title: Paper title
+            abstract: Paper abstract
+            
+        Returns:
+            List of impact suggestion strings
+        """
+        # Extract keywords to determine category
+        text_lower = (title + " " + abstract).lower()
+        
+        # Determine category based on keywords
+        if any(kw in text_lower for kw in ["privacy", "security", "federated", "differential privacy"]):
+            category = "Privacy & Security"
+        elif any(kw in text_lower for kw in ["vision", "image", "video", "detection", "segmentation"]):
+            category = "Computer Vision"
+        elif any(kw in text_lower for kw in ["nlp", "language", "text", "translation", "chatbot"]):
+            category = "Natural Language Processing"
+        elif any(kw in text_lower for kw in ["robot", "autonomous", "navigation"]):
+            category = "Robotics"
+        else:
+            category = "Machine Learning"
+        
+        return self.generate_impact_suggestions(title, abstract, category)
+    
+    async def extract_tags(self, title: str, abstract: str) -> List[str]:
+        """
+        Extract relevant tags from paper title and abstract
+        
+        Args:
+            title: Paper title
+            abstract: Paper abstract
+            
+        Returns:
+            List of tag strings
+        """
+        text_lower = (title + " " + abstract).lower()
+        tags = []
+        
+        # Common ML/AI tags
+        tag_keywords = {
+            "LLM": ["large language model", "llm", "gpt", "bert", "transformer language"],
+            "Computer Vision": ["computer vision", "image", "video", "visual", "detection", "segmentation"],
+            "NLP": ["natural language", "nlp", "text processing", "language model"],
+            "Deep Learning": ["deep learning", "neural network", "deep neural"],
+            "Reinforcement Learning": ["reinforcement learning", "rl", "policy gradient", "q-learning"],
+            "Federated Learning": ["federated learning", "federated"],
+            "Privacy": ["privacy", "differential privacy", "secure"],
+            "Security": ["security", "adversarial", "attack"],
+            "Attention": ["attention mechanism", "self-attention", "attention"],
+            "Transformer": ["transformer", "bert", "gpt"],
+            "Efficiency": ["efficient", "optimization", "faster", "speedup"],
+            "Edge Computing": ["edge", "mobile", "embedded"],
+            "Real-Time": ["real-time", "realtime", "latency"],
+            "Generative AI": ["generative", "generation", "gan", "diffusion"],
+            "Robotics": ["robot", "autonomous", "navigation"],
+            "Healthcare": ["medical", "healthcare", "diagnosis", "clinical"],
+            "Multimodal": ["multimodal", "multi-modal", "vision-language"]
+        }
+        
+        for tag, keywords in tag_keywords.items():
+            if any(kw in text_lower for kw in keywords):
+                tags.append(tag)
+        
+        # Limit to 5 most relevant tags
+        return tags[:5] if tags else ["Machine Learning"]
